@@ -1,0 +1,6 @@
+import jwt from 'jsonwebtoken';
+import {User} from './models.js';
+export async function protect(req,res,next){try{const h=req.headers.authorization||'',token=h.startsWith('Bearer ')?h.slice(7):null;if(!token)return res.status(401).json({message:'Please sign in to continue.'});const p=jwt.verify(token,process.env.JWT_SECRET),user=await User.findById(p.id);if(!user)return res.status(401).json({message:'Account no longer exists.'});req.user=user;next();}catch{return res.status(401).json({message:'Invalid or expired session.'});}}
+export function adminOnly(req,res,next){if(req.user?.role!=='admin')return res.status(403).json({message:'Administrator access required.'});next();}
+export function notFound(req,res){res.status(404).json({message:`No endpoint found for ${req.method} ${req.originalUrl}`});}
+export function errorHandler(err,req,res,next){if(err?.code===11000)return res.status(409).json({message:'A record with that unique value already exists.'});if(err?.name==='ValidationError'||err?.name==='CastError')return res.status(400).json({message:err.message});console.error(err);res.status(err.status||500).json({message:err.status?err.message:'Unexpected server error.'});}
